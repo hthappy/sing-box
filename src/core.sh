@@ -1272,7 +1272,7 @@ info() {
             [[ $is_protocol == 'vmess' ]] && {
                 # 获取国家名称
                 local country=$(get_country $is_addr)
-                is_vmess_url=$(jq -c '{v:2,ps:'\"$country-$net-$host\"',add:'\"$is_addr\"',port:'\"$is_https_port\"',id:'\"$uuid\"',aid:"0",net:'\"$net\"',host:'\"$host\"',path:'\"$path\"',tls:'\"tls\"'}' <<<{})
+                is_vmess_url=$(jq -c '{v:2,ps:'\"$country - $host\"',add:'\"$is_addr\"',port:'\"$is_https_port\"',id:'\"$uuid\"',aid:"0",net:'\"$net\"',host:'\"$host\"',path:'\"$path\"',tls:'\"tls\"'}' <<<{})
                 is_url=vmess://$(echo -n $is_vmess_url | base64 -w 0)
             } || {
                 [[ $is_protocol == "trojan" ]] && {
@@ -1282,7 +1282,7 @@ info() {
                 }
                 # 获取国家名称
                 local country=$(get_country $is_addr)
-                is_url="$is_protocol://$uuid@$host:$is_https_port?encryption=none&security=tls&type=$net&host=$host&path=$path#$country-$net-$host"
+                is_url="$is_protocol://$uuid@$host:$is_https_port?encryption=none&security=tls&type=$net&host=$host&path=$path#$country - $host"
             }
             [[ $is_caddy ]] && is_can_change+=(11)
             is_info_str=($is_protocol $is_addr $is_https_port $uuid $net $host $path 'tls')
@@ -1304,34 +1304,38 @@ info() {
                 is_info_str+=(tls h3 true)
                 is_quic_add=",tls:\"tls\",alpn:\"h3\"" # cant add allowInsecure
             }
-            is_vmess_url=$(jq -c "{v:2,ps:\"$country${net}-$is_addr\",add:\"$is_addr\",port:\"$port\",id:\"$uuid\",aid:\"0\",net:\"$net\",type:\"$is_type\"$is_quic_add}" <<<{})
+            # 获取国家名称
+            local country=$(get_country $is_addr)
+            # 确保 country 不为空且格式正确
+            [[ ! $country ]] && country="Unknown"
+            is_vmess_url=$(jq -c "{v:2,ps:\"$country - $is_addr\",add:\"$is_addr\",port:\"$port\",id:\"$uuid\",aid:\"0\",net:\"$net\",type:\"$is_type\"$is_quic_add}" <<<{})
             is_url=vmess://$(echo -n $is_vmess_url | base64 -w 0)
         fi
         ;;
     ss)
         is_can_change=(0 1 4 6)
         is_info_show=(0 1 2 10 11)
-        is_url="ss://$(echo -n ${ss_method}:${ss_password} | base64 -w 0)@${is_addr}:${port}#$country$net-${is_addr}"
+        is_url="ss://$(echo -n ${ss_method}:${ss_password} | base64 -w 0)@${is_addr}:${port}#$country - ${is_addr}"
         is_info_str=($is_protocol $is_addr $port $ss_password $ss_method)
         ;;
     trojan)
         is_insecure=1
         is_can_change=(0 1 4)
         is_info_show=(0 1 2 10 4 8 20)
-        is_url="$is_protocol://$password@$is_addr:$port?type=tcp&security=tls&allowInsecure=1#$country$net-$is_addr"
+        is_url="$is_protocol://$password@$is_addr:$port?type=tcp&security=tls&allowInsecure=1#$country - $is_addr"
         is_info_str=($is_protocol $is_addr $port $password tcp tls true)
         ;;
     hy*)
         is_can_change=(0 1 4)
         is_info_show=(0 1 2 10 8 9 20)
-        is_url="$is_protocol://$password@$is_addr:$port?alpn=h3&insecure=1#$country$net-$is_addr"
+        is_url="$is_protocol://$password@$is_addr:$port?alpn=h3&insecure=1#$country - $is_addr"
         is_info_str=($is_protocol $is_addr $port $password tls h3 true)
         ;;
     tuic)
         is_insecure=1
         is_can_change=(0 1 5)
         is_info_show=(0 1 2 3 8 9 20 21)
-        is_url="$is_protocol://$uuid:@$is_addr:$port?alpn=h3&allow_insecure=1&congestion_control=bbr#$country$net-$is_addr"
+        is_url="$is_protocol://$uuid:@$is_addr:$port?alpn=h3&allow_insecure=1&congestion_control=bbr#$country - $is_addr"
         is_info_str=($is_protocol $is_addr $port $uuid tls h3 true bbr)
         ;;
     reality)
@@ -1345,8 +1349,10 @@ info() {
             is_net_type=h2
             is_info_show=(${is_info_show[@]/15/})
         }
+        # 获取国家名称
+        local country=$(get_country $is_addr)
         is_info_str=($is_protocol $is_addr $port $uuid $is_flow $is_net_type reality $is_servername chrome $is_public_key)
-        is_url="$is_protocol://$uuid@$ip:$port?encryption=none&security=reality&flow=$is_flow&type=$is_net_type&sni=$is_servername&pbk=$is_public_key&fp=chrome#$country$net-$is_addr"
+        is_url="$is_protocol://$uuid@$ip:$port?encryption=none&security=reality&flow=$is_flow&type=$is_net_type&sni=$is_servername&pbk=$is_public_key&fp=chrome#$country - $is_addr"
         ;;
     direct)
         is_can_change=(0 1 7 8)
@@ -1357,7 +1363,7 @@ info() {
         is_can_change=(0 1 12 4)
         is_info_show=(0 1 2 19 10)
         is_info_str=($is_protocol $is_addr $port $is_socks_user $is_socks_pass)
-        is_url="socks://$(echo -n ${is_socks_user}:${is_socks_pass} | base64 -w 0)@${is_addr}:${port}#$country$net-${is_addr}"
+        is_url="socks://$(echo -n ${is_socks_user}:${is_socks_pass} | base64 -w 0)@${is_addr}:${port}#$country - ${is_addr}"
         ;;
     esac
     [[ $is_dont_show_info || $is_gen || $is_dont_auto_exit ]] && return # dont show info
@@ -1625,7 +1631,7 @@ main() {
             manage restart caddy &
             _green "\nfix 完成.\n"
         else
-            err "无法执行此操作"
+            err "无执行此操作"
         fi
         ;;
     i | info)
@@ -1710,8 +1716,11 @@ main() {
 get_country() {
     local ip=$1
     local country
-    # 使用 ip-api.com 的免费 API 获取国家信息
+    # 添加调试输出
+    echo "Getting country for IP: $ip" >&2
     country=$(_wget -qO- "http://ip-api.com/line/$ip?fields=country")
+    # 添加调试输出
+    echo "API response: $country" >&2
     # 如果获取失败则使用默认值
     [[ ! $country ]] && country="Unknown"
     echo $country
