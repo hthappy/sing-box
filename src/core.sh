@@ -1716,11 +1716,7 @@ main() {
 get_country() {
     local ip=$1
     local country
-    # 添加调试输出
-    echo "公网IP: $ip" >&2
     country=$(_wget -qO- "http://ip-api.com/line/$ip?fields=country")
-    # 添加调试输出
-    echo "区域: $country" >&2
     # 如果获取失败则使用默认值
     [[ ! $country ]] && country="Unknown"
     echo $country
