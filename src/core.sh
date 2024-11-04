@@ -1716,6 +1716,7 @@ main() {
 get_country() {
     local ip=$1
     local country
+    
     country=$(_wget -qO- "http://ip-api.com/line/$ip?fields=country")
     # 如果获取失败则使用默认值
     [[ ! $country ]] && country="Unknown"
