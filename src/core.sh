@@ -1270,9 +1270,9 @@ info() {
             is_can_change=(0 1 2 3 5)
             is_info_show=(0 1 2 3 4 6 7 8)
             [[ $is_protocol == 'vmess' ]] && {
-                # 使用主机名称代替 country
-                local hostname="$host"
-                is_vmess_url=$(jq -c '{v:2,ps:'\"$hostname\"',add:'\"$is_addr\"',port:'\"$is_https_port\"',id:'\"$uuid\"',aid:"0",net:'\"$net\"',host:'\"$host\"',path:'\"$path\"',tls:'\"tls\"'}' <<<{})
+                # 显示 "服务器主机名 - IP地址"
+                local displayName="$(hostname) - $is_addr"
+                is_vmess_url=$(jq -c '{v:2,ps:"'"$displayName"'",add:"'"$is_addr"'",port:"'"$is_https_port"'",id:"'"$uuid"'",aid:"0",net:"'"$net"'",host:"'"$host"'",path:"'"$path"'",tls:"tls"}' <<<{})
                 is_url=vmess://$(echo -n $is_vmess_url | base64 -w 0)
             } || {
                 [[ $is_protocol == "trojan" ]] && {
@@ -1280,9 +1280,8 @@ info() {
                     is_can_change=(0 1 2 3 4)
                     is_info_show=(0 1 2 10 4 6 7 8)
                 }
-                # 使用主机名称代替 country
-                local hostname="$host"
-                is_url="$is_protocol://$uuid@$host:$is_https_port?encryption=none&security=tls&type=$net&host=$host&path=$path#$hostname"
+                local displayName="$(hostname) - $is_addr"
+                is_url="$is_protocol://$uuid@$host:$is_https_port?encryption=none&security=tls&type=$net&host=$host&path=$path#$displayName"
             }
             [[ $is_caddy ]] && is_can_change+=(11)
             is_info_str=($is_protocol $is_addr $is_https_port $uuid $net $host $path 'tls')
@@ -1305,7 +1304,7 @@ info() {
                 is_quic_add=",tls:\"tls\",alpn:\"h3\"" # cant add allowInsecure
             }
             # 使用主机名称代替 country
-            local hostname="$host"
+            local hostname="$(hostname)"
             [[ ! $hostname ]] && hostname="Unknown"
             is_vmess_url=$(jq -c "{v:2,ps:\"$hostname - $is_addr\",add:\"$is_addr\",port:\"$port\",id:\"$uuid\",aid:\"0\",net:\"$net\",type:\"$is_type\"$is_quic_add}" <<<{})
             is_url=vmess://$(echo -n $is_vmess_url | base64 -w 0)
@@ -1321,20 +1320,23 @@ info() {
         is_insecure=1
         is_can_change=(0 1 4)
         is_info_show=(0 1 2 10 4 8 20)
-        is_url="$is_protocol://$password@$is_addr:$port?type=tcp&security=tls&allowInsecure=1#$host"
+        local displayName="$(hostname) - $is_addr"
+        is_url="$is_protocol://$password@$is_addr:$port?type=tcp&security=tls&allowInsecure=1#$displayName"
         is_info_str=($is_protocol $is_addr $port $password tcp tls true)
         ;;
     hy*)
         is_can_change=(0 1 4)
         is_info_show=(0 1 2 10 8 9 20)
-        is_url="$is_protocol://$password@$is_addr:$port?alpn=h3&insecure=1#$host"
+        local displayName="$(hostname) - $is_addr"
+        is_url="$is_protocol://$password@$is_addr:$port?alpn=h3&insecure=1#$displayName"
         is_info_str=($is_protocol $is_addr $port $password tls h3 true)
         ;;
     tuic)
         is_insecure=1
         is_can_change=(0 1 5)
         is_info_show=(0 1 2 3 8 9 20 21)
-        is_url="$is_protocol://$uuid:@$is_addr:$port?alpn=h3&allow_insecure=1&congestion_control=bbr#$host"
+        local displayName="$(hostname) - $is_addr"
+        is_url="$is_protocol://$uuid:@$is_addr:$port?alpn=h3&allow_insecure=1&congestion_control=bbr#$displayName"
         is_info_str=($is_protocol $is_addr $port $uuid tls h3 true bbr)
         ;;
     reality)
@@ -1348,10 +1350,10 @@ info() {
             is_net_type=h2
             is_info_show=(${is_info_show[@]/15/})
         }
-        # 使用主机名称代替 country
-        local hostname="$host"
+        # 对于 reality 协议，显示服务器主机名与 IP地址，例如 "服务器主机名 - ip"
+        local displayName="$(hostname) - $is_addr"
         is_info_str=($is_protocol $is_addr $port $uuid $is_flow $is_net_type reality $is_servername chrome $is_public_key)
-        is_url="$is_protocol://$uuid@$ip:$port?encryption=none&security=reality&flow=$is_flow&type=$is_net_type&sni=$is_servername&pbk=$is_public_key&fp=chrome#$hostname"
+        is_url="$is_protocol://$uuid@$is_addr:$port?encryption=none&security=reality&flow=$is_flow&type=$is_net_type&sni=$is_servername&pbk=$is_public_key&fp=chrome#$displayName"
         ;;
     direct)
         is_can_change=(0 1 7 8)
@@ -1362,7 +1364,7 @@ info() {
         is_can_change=(0 1 12 4)
         is_info_show=(0 1 2 19 10)
         is_info_str=($is_protocol $is_addr $port $is_socks_user $is_socks_pass)
-        is_url="socks://$(echo -n ${is_socks_user}:${is_socks_pass} | base64 -w 0)@${is_addr}:${port}#$host - ${is_addr}"
+        is_url="socks://$(echo -n ${is_socks_user}:${is_socks_pass} | base64 -w 0)@${is_addr}:${port}#$(hostname) - ${is_addr}"
         ;;
     esac
     [[ $is_dont_show_info || $is_gen || $is_dont_auto_exit ]] && return # dont show info
