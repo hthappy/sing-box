@@ -20,6 +20,7 @@ show_help() {
             "   c, change [name] [option] [args... | auto]      更改配置"
             "   d, del [name]                                   删除配置**"
             "   i, info [name]                                  查看配置"
+            "   clients                                         查看当前连接的客户端"
             "   qr [name]                                       二维码信息"
             "   url [name]                                      URL 信息"
             "   log                                             查看日志"

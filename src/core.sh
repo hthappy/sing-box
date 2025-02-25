@@ -1696,6 +1696,9 @@ main() {
         load help.sh
         show_help ${@:2}
         ;;
+    clients)
+        show_clients
+        ;;
     *)
         is_try_change=1
         change test $1
@@ -1711,4 +1714,41 @@ main() {
         fi
         ;;
     esac
+}
+
+# 在合适位置添加新函数
+show_clients() {
+    local log_file="/var/log/sing-box/access.log"
+    if [[ ! -f $log_file ]]; then
+        err "找不到日志文件: $log_file"
+    fi
+
+    msg "\n------------- 当前活动连接 -------------\n"
+    
+    # 获取最近5分钟的连接记录
+    local current_time=$(date +%s)
+    local connected_ips=$(tail -n 1000 $log_file | grep "accepted" | while read line; do
+        # 解析日志时间
+        local log_time=$(echo $line | awk '{print $1}' | sed 's/\[//;s/\]//')
+        local log_epoch=$(date -d "$log_time" +%s)
+        
+        # 只显示最近5分钟的连接
+        if (( $current_time - $log_epoch < 300 )); then
+            # 提取客户端IP和用户标识(如果有)
+            local client_ip=$(echo $line | grep -oP "from \K[0-9.]+(?=:[0-9]+)")
+            local user_id=$(echo $line | grep -oP "user \K[^,]+" || echo "未知用户")
+            echo "$client_ip ($user_id)"
+        fi
+    done | sort -u)
+
+    if [[ -z "$connected_ips" ]]; then
+        msg "当前没有活动连接"
+    else
+        echo "$connected_ips" | while read line; do
+            msg "客户端: $(_green "$line")"
+        done
+    fi
+    
+    msg "\n提示: 仅显示最近5分钟内的连接记录"
+    msg "日志文件: $(_blue $log_file)\n"
 }
