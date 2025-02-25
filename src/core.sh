@@ -38,6 +38,7 @@ mainmenu=(
     "查看配置"
     "删除配置"
     "运行管理"
+    "查看客户端"
     "更新"
     "卸载"
     "帮助"
@@ -1507,20 +1508,23 @@ is_main_menu() {
         msg "\n管理状态执行: $(_green $is_do_manage)\n"
         ;;
     6)
+        show_clients
+        ;;
+    7)
         is_tmp_list=("更新$is_core_name" "更新脚本")
         [[ $is_caddy ]] && is_tmp_list+=("更新Caddy")
         ask list is_do_update null "\n请选择更新:\n"
         update $REPLY
         ;;
-    7)
+    8)
         uninstall
         ;;
-    8)
+    9)
         msg
         load help.sh
         show_help
         ;;
-    9)
+    10)
         ask list is_do_other "启用BBR 查看日志 测试运行 重装脚本 设置DNS"
         case $REPLY in
         1)
@@ -1542,7 +1546,7 @@ is_main_menu() {
             ;;
         esac
         ;;
-    10)
+    11)
         load help.sh
         about
         ;;
@@ -1727,28 +1731,37 @@ show_clients() {
     
     # 获取最近5分钟的连接记录
     local current_time=$(date +%s)
-    local connected_ips=$(tail -n 1000 $log_file | grep "accepted" | while read line; do
+    local all_connections=$(tail -n 1000 $log_file | grep "inbound connection from" | while read line; do
         # 解析日志时间
-        local log_time=$(echo $line | awk '{print $1}' | sed 's/\[//;s/\]//')
+        local log_time=$(echo $line | awk '{print $2" "$3}')
         local log_epoch=$(date -d "$log_time" +%s)
         
         # 只显示最近5分钟的连接
         if (( $current_time - $log_epoch < 300 )); then
-            # 提取客户端IP和用户标识(如果有)
+            # 提取客户端IP和端口
             local client_ip=$(echo $line | grep -oP "from \K[0-9.]+(?=:[0-9]+)")
-            local user_id=$(echo $line | grep -oP "user \K[^,]+" || echo "未知用户")
-            echo "$client_ip ($user_id)"
+            # 提取配置文件名称
+            local config_name=$(echo $line | grep -oP "inbound/[^[]+\[\K[^]]+")
+            echo "$client_ip $config_name"
         fi
-    done | sort -u)
+    done)
 
-    if [[ -z "$connected_ips" ]]; then
+    # 获取唯一IP列表和计数
+    local unique_ips=($(echo "$all_connections" | awk '{print $1}' | sort -u))
+    local ip_count=${#unique_ips[@]}
+
+    # 显示每个唯一IP的信息
+    for ip in "${unique_ips[@]}"; do
+        # 获取该IP使用的配置文件
+        local config=$(echo "$all_connections" | grep "^$ip " | awk '{print $2}' | sort -u | head -1)
+        msg "客户端: $(_green "$ip ($config)")"
+    done
+
+    if [[ $ip_count -eq 0 ]]; then
         msg "当前没有活动连接"
     else
-        echo "$connected_ips" | while read line; do
-            msg "客户端: $(_green "$line")"
-        done
+        msg "\n总计: $(_green "$ip_count") 个独立IP地址"
     fi
     
     msg "\n提示: 仅显示最近5分钟内的连接记录"
-    msg "日志文件: $(_blue $log_file)\n"
 }
