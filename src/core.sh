@@ -1764,4 +1764,5 @@ show_clients() {
     fi
     
     msg "\n提示: 仅显示最近5分钟内的连接记录"
+    msg "日志文件: $(_blue $log_file)\n"
 }
